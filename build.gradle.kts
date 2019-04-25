@@ -1,18 +1,21 @@
 plugins {
     java
+    idea
 }
 
 group = "me.duncte123"
 version = "1.0-SNAPSHOT"
 
 repositories {
-    mavenCentral()
+    jcenter()
 }
 
 dependencies {
+    implementation("com.sedmelluq", "lavaplayer", "1.3.16")
+    implementation("ch.qos.logback", "logback-classic", "1.2.3")
     testCompile("junit", "junit", "4.12")
 }
 
 configure<JavaPluginConvention> {
-    sourceCompatibility = JavaVersion.VERSION_1_8
+    sourceCompatibility = JavaVersion.VERSION_11
 }
