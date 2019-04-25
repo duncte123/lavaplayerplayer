@@ -23,7 +23,6 @@ import java.util.concurrent.TimeUnit;
 public class Main extends AudioEventAdapter {
 
     private final ScheduledExecutorService service = Executors.newScheduledThreadPool(1);
-    private final AudioPlayerManager playerManager;
     private AudioFrame lastFrame;
     private final AudioPlayer audioPlayer;
     private final AudioFormat format;
@@ -34,19 +33,19 @@ public class Main extends AudioEventAdapter {
         this.clip = AudioSystem.getClip();
         this.format = new AudioFormat(Encoding.PCM_UNSIGNED, 44100, 16, 2, 24, 44100, true);
 
-
-        this.playerManager = new DefaultAudioPlayerManager();
-        this.playerManager.getConfiguration().setOutputFormat(StandardAudioDataFormats.COMMON_PCM_S16_BE);
+        AudioPlayerManager playerManager = new DefaultAudioPlayerManager();
+        playerManager.getConfiguration().setOutputFormat(StandardAudioDataFormats.COMMON_PCM_S16_BE);
         AudioSourceManagers.registerRemoteSources(playerManager);
         AudioSourceManagers.registerLocalSource(playerManager);
 
-        this.audioPlayer = this.playerManager.createPlayer();
+        this.audioPlayer = playerManager.createPlayer();
         this.audioPlayer.addListener(this);
 
-        this.playerManager.loadItem("https://www.youtube.com/watch?v=aOB8_aD5X88", new AudioLoadResultHandler() {
+        playerManager.loadItem("https://www.youtube.com/watch?v=aOB8_aD5X88", new AudioLoadResultHandler() {
             @Override
             public void trackLoaded(AudioTrack track) {
-                Main.this.audioPlayer.playTrack(track);
+                audioPlayer.playTrack(track);
+
                 System.out.println(track.toString());
             }
 
