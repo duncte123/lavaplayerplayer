@@ -1,33 +1,82 @@
 package me.duncte123.lavaplayerplayer.gui;
 
-import javafx.application.Application;
-import javafx.scene.Scene;
-import javafx.scene.control.Label;
-import javafx.scene.layout.StackPane;
-import javafx.scene.text.Font;
-import javafx.scene.text.FontWeight;
-import javafx.stage.Stage;
+import me.duncte123.lavaplayerplayer.Player;
 
-public class MainGui extends Application {
-    @Override
-    public void start(Stage primaryStage) throws Exception {
-        initUI(primaryStage);
+import javax.swing.*;
+import java.awt.*;
+
+public class MainGui extends JFrame {
+    private Player player;
+
+    public MainGui() {
+        initUI();
     }
 
-    private void initUI(Stage stage) {
-        final StackPane root = new StackPane();
-        final Scene scene = new Scene(root, 300, 250);
+    private void initUI() {
+        var input = new JTextField();
+        input.setMaximumSize(new Dimension(250, 25));
 
-        final Label lbl = new Label("Simple JavaFX application.");
-        lbl.setFont(Font.font("Serif", FontWeight.NORMAL, 20));
-        root.getChildren().add(lbl);
+        var playBtn = new JButton("Play track");
+        playBtn.addActionListener((event) -> loadTrack(input.getText()));
+        playBtn.setToolTipText("Plays the track in the input field.");
+        playBtn.setSize(100, 50);
 
-        stage.setTitle("Simple application");
-        stage.setScene(scene);
-        stage.show();
+
+        createLayout(input, playBtn);
+
+        setTitle("Lavaplayer player");
+        setSize(300, 200);
+        setLocationRelativeTo(null);
+        setDefaultCloseOperation(EXIT_ON_CLOSE);
+    }
+
+    private void createLayout(JComponent... arg) {
+        var pane = getContentPane();
+        var gl = new GroupLayout(pane);
+        pane.setLayout(gl);
+
+        gl.setAutoCreateContainerGaps(true);
+        gl.setAutoCreateGaps(true);
+
+        var g1 = gl.createParallelGroup();
+        var g2 = gl.createSequentialGroup();
+
+        g1.addGroup(
+                gl.createSequentialGroup()
+                        .addComponent(arg[0])
+                        .addComponent(arg[1])
+        );
+
+        g2.addGroup(
+                gl.createParallelGroup()
+                        .addComponent(arg[0])
+                        .addComponent(arg[1])
+        );
+
+        gl.setHorizontalGroup(g1);
+        gl.setVerticalGroup(g2);
+    }
+
+    private void loadTrack(String track) {
+        if (this.player == null) {
+            try {
+                this.player = new Player();
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
+
+        this.player.load(track);
     }
 
     public static void main(String[] args) {
-        launch(args);
+        EventQueue.invokeLater(() -> {
+            try {
+                var ex = new MainGui();
+                ex.setVisible(true);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        });
     }
 }

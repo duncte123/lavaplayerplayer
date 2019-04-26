@@ -18,26 +18,20 @@ import javax.sound.sampled.SourceDataLine;
 
 import static com.sedmelluq.discord.lavaplayer.format.StandardAudioDataFormats.COMMON_PCM_S16_BE;
 
-public class Main extends AudioEventAdapter {
+public class Player extends AudioEventAdapter {
 
     private final AudioPlayer audioPlayer;
+    private final AudioPlayerManager playerManager;
 
-    private Main() throws Exception {
-        AudioPlayerManager playerManager = new DefaultAudioPlayerManager();
-        playerManager.getConfiguration().setOutputFormat(COMMON_PCM_S16_BE);
-        AudioSourceManagers.registerRemoteSources(playerManager);
-        AudioSourceManagers.registerLocalSource(playerManager);
+    public Player() throws Exception {
+        this.playerManager = new DefaultAudioPlayerManager();
+        this.playerManager.getConfiguration().setOutputFormat(COMMON_PCM_S16_BE);
+        AudioSourceManagers.registerRemoteSources(this.playerManager);
+        AudioSourceManagers.registerLocalSource(this.playerManager);
 
-        this.audioPlayer = playerManager.createPlayer();
+        this.audioPlayer = this.playerManager.createPlayer();
         this.audioPlayer.addListener(this);
         this.audioPlayer.setVolume(35);
-
-        playerManager.loadItem("https://www.youtube.com/watch?v=aOB8_aD5X88",
-                new FunctionalResultHandler((track) -> {
-                    this.audioPlayer.playTrack(track);
-
-                    System.out.println(track);
-                }, null, null, null));
 
         AudioDataFormat format = playerManager.getConfiguration().getOutputFormat();
         AudioInputStream stream = AudioPlayerInputStream.createStream(this.audioPlayer, format, 10000L, false);
@@ -47,12 +41,19 @@ public class Main extends AudioEventAdapter {
         line.open(stream.getFormat());
         line.start();
 
-        byte[] buffer = new byte[COMMON_PCM_S16_BE.maximumChunkSize()];
-        int chunkSize;
+        new Thread(() -> {
+            try {
+                byte[] buffer = new byte[COMMON_PCM_S16_BE.maximumChunkSize()];
+                int chunkSize;
 
-        while ((chunkSize = stream.read(buffer)) >= 0) {
-            line.write(buffer, 0, chunkSize);
-        }
+                while ((chunkSize = stream.read(buffer)) >= 0) {
+                    line.write(buffer, 0, chunkSize);
+                }
+            }
+            catch (Exception e) {
+                e.printStackTrace();
+            }
+        }).start();
     }
 
     @Override
@@ -60,7 +61,12 @@ public class Main extends AudioEventAdapter {
         System.out.println("Finished the track");
     }
 
-    public static void main(String[] args) throws Exception {
-        new Main();
+    public void load(final String url) {
+        this.playerManager.loadItem(url,
+                new FunctionalResultHandler((track) -> {
+                    this.audioPlayer.playTrack(track);
+
+                    System.out.println(track);
+                }, null, null, null));
     }
 }
