@@ -1,99 +1,65 @@
 package me.duncte123.lavaplayerplayer;
 
-import com.sedmelluq.discord.lavaplayer.format.StandardAudioDataFormats;
-import com.sedmelluq.discord.lavaplayer.player.AudioLoadResultHandler;
+import com.sedmelluq.discord.lavaplayer.format.AudioDataFormat;
+import com.sedmelluq.discord.lavaplayer.format.AudioPlayerInputStream;
 import com.sedmelluq.discord.lavaplayer.player.AudioPlayer;
 import com.sedmelluq.discord.lavaplayer.player.AudioPlayerManager;
 import com.sedmelluq.discord.lavaplayer.player.DefaultAudioPlayerManager;
+import com.sedmelluq.discord.lavaplayer.player.FunctionalResultHandler;
 import com.sedmelluq.discord.lavaplayer.player.event.AudioEventAdapter;
 import com.sedmelluq.discord.lavaplayer.source.AudioSourceManagers;
-import com.sedmelluq.discord.lavaplayer.tools.FriendlyException;
-import com.sedmelluq.discord.lavaplayer.track.AudioPlaylist;
 import com.sedmelluq.discord.lavaplayer.track.AudioTrack;
 import com.sedmelluq.discord.lavaplayer.track.AudioTrackEndReason;
-import com.sedmelluq.discord.lavaplayer.track.playback.AudioFrame;
 
-import javax.sound.sampled.*;
-import javax.sound.sampled.AudioFormat.Encoding;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.ScheduledFuture;
-import java.util.concurrent.TimeUnit;
+import javax.sound.sampled.AudioInputStream;
+import javax.sound.sampled.AudioSystem;
+import javax.sound.sampled.DataLine;
+import javax.sound.sampled.SourceDataLine;
+
+import static com.sedmelluq.discord.lavaplayer.format.StandardAudioDataFormats.COMMON_PCM_S16_BE;
 
 public class Main extends AudioEventAdapter {
 
-    private final ScheduledExecutorService service = Executors.newScheduledThreadPool(1);
-    private AudioFrame lastFrame;
     private final AudioPlayer audioPlayer;
-    private final AudioFormat format;
-    private final Clip clip;
-    private ScheduledFuture<?> future;
 
     private Main() throws Exception {
-        this.clip = AudioSystem.getClip();
-        this.format = new AudioFormat(Encoding.PCM_UNSIGNED, 44100, 16, 2, 24, 44100, true);
-
         AudioPlayerManager playerManager = new DefaultAudioPlayerManager();
-        playerManager.getConfiguration().setOutputFormat(StandardAudioDataFormats.COMMON_PCM_S16_BE);
+        playerManager.getConfiguration().setOutputFormat(COMMON_PCM_S16_BE);
         AudioSourceManagers.registerRemoteSources(playerManager);
         AudioSourceManagers.registerLocalSource(playerManager);
 
         this.audioPlayer = playerManager.createPlayer();
         this.audioPlayer.addListener(this);
 
-        playerManager.loadItem("https://www.youtube.com/watch?v=aOB8_aD5X88", new AudioLoadResultHandler() {
-            @Override
-            public void trackLoaded(AudioTrack track) {
-                audioPlayer.playTrack(track);
+        playerManager.loadItem("https://www.youtube.com/watch?v=aOB8_aD5X88",
+                new FunctionalResultHandler((track) -> {
+                    this.audioPlayer.playTrack(track);
 
-                System.out.println(track.toString());
-            }
+                    System.out.println(track);
+                }, null, null, null));
 
-            @Override
-            public void playlistLoaded(AudioPlaylist playlist) {
-                //
-            }
+        AudioDataFormat format = playerManager.getConfiguration().getOutputFormat();
+        AudioInputStream stream = AudioPlayerInputStream.createStream(this.audioPlayer, format, 10000L, false);
+        SourceDataLine.Info info = new DataLine.Info(SourceDataLine.class, stream.getFormat());
+        SourceDataLine line = (SourceDataLine) AudioSystem.getLine(info);
 
-            @Override
-            public void noMatches() {
-                //
-            }
+        line.open(stream.getFormat());
+        line.start();
 
-            @Override
-            public void loadFailed(FriendlyException exception) {
-                //
-            }
-        });
+        byte[] buffer = new byte[COMMON_PCM_S16_BE.maximumChunkSize()];
+        int chunkSize;
 
-        startSending();
-    }
-
-    private void startSending() {
-        this.future = service.scheduleAtFixedRate(() -> {
-            try {
-                if (lastFrame == null) {
-                    lastFrame = audioPlayer.provide();
-                }
-
-                final byte[] data = lastFrame != null ? lastFrame.getData() : null;
-
-                if (data != null) {
-                    clip.open(this.format, data, 0, data.length);
-                }
-            }
-            catch (Exception e) {
-                e.printStackTrace();
-            }
-        }, 0L, 20L, TimeUnit.MILLISECONDS);
-    }
-
-    public static void main(String[] args) throws Exception {
-        new Main();
+        while ((chunkSize = stream.read(buffer)) >= 0) {
+            line.write(buffer, 0, chunkSize);
+        }
     }
 
     @Override
     public void onTrackEnd(AudioPlayer player, AudioTrack track, AudioTrackEndReason endReason) {
-        this.future.cancel(true);
         System.out.println("Finished the track");
+    }
+
+    public static void main(String[] args) throws Exception {
+        new Main();
     }
 }
