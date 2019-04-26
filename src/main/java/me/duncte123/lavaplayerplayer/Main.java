@@ -30,6 +30,7 @@ public class Main extends AudioEventAdapter {
 
         this.audioPlayer = playerManager.createPlayer();
         this.audioPlayer.addListener(this);
+        this.audioPlayer.setVolume(35);
 
         playerManager.loadItem("https://www.youtube.com/watch?v=aOB8_aD5X88",
                 new FunctionalResultHandler((track) -> {
