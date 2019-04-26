@@ -11,7 +11,7 @@ version = "1.0-SNAPSHOT"
 
 javafx {
     version = jfxVersion
-    modules = arrayListOf("javafx.controls", "javafx.graphics")
+    modules = arrayListOf("javafx.base", "javafx.controls", "javafx.graphics")
 }
 
 repositories {
@@ -22,6 +22,7 @@ dependencies {
     implementation("com.sedmelluq", "lavaplayer", "1.3.16")
     implementation("ch.qos.logback", "logback-classic", "1.2.3")
 
+    implementation("org.openjfx", "javafx-base", jfxVersion)
     implementation("org.openjfx", "javafx-controls", jfxVersion)
     implementation("org.openjfx", "javafx-graphics", jfxVersion, classifier = "win")
     implementation("org.openjfx", "javafx-graphics", jfxVersion, classifier = "linux")
